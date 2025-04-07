@@ -1,0 +1,92 @@
+---
+- name: Create and terminate  EC2 instance sample
+  connection: local
+  hosts: localhost
+  gather_facts: no
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    key_name: "anskey1"
+    instance_type: t2.micro
+    instances:
+    - mysql
+    - backend
+    - frontend
+    image: ami-00a929b66ed6e0de6
+    region: us-east-1
+    subnet_id: subnet-0f9ebbe7f7c087637
+    security_group: sg-01e0018ee20bb43b3
+
+  tasks:
+    - name: Check if pip is installed
+      command: which pip3
+      register: pip_check
+      ignore_errors: yes
+
+    - name: Install pip if not found
+      yum:
+        name: python3-pip
+        state: present
+      when: pip_check.rc != 0
+
+    - name: Check if boto3 is installed
+      command: python3 -c "import boto3"
+      register: boto3_check
+      ignore_errors: yes
+
+    - name: Install boto3 if not found
+      pip:
+        name: boto3
+        executable: pip3
+      when: boto3_check.rc != 0
+
+    - name: Check if botocore is installed
+      command: python3 -c "import botocore"
+      register: botocore_check
+      ignore_errors: yes
+
+    - name: Install botocore if not found
+      pip:
+        name: botocore
+        executable: pip3
+      when: botocore_check.rc != 0
+
+
+    - name: Create EC2 instances
+      amazon.aws.ec2_instance:
+        key_name: "{{ key_name }}"
+        name: "{{ item }}"
+        instance_type: "{{ instance_type }}"
+        image_id: "{{ image }}"
+        wait: yes
+        region: "{{ region }}"
+        vpc_subnet_id: "{{ subnet_id }}"
+        security_group: "{{ security_group }}"
+          #count: 2
+      loop: "{{ instances }}"
+      environment:
+        AWS_SHARED_CREDENTIALS_FILE: /home/autouser/.aws/credentials
+        AWS_CONFIG_FILE: /home/autouser/.aws/config
+        AWS_DEFAULT_REGION: "{{ region }}"
+      register: ec2
+
+
+    - name: Retrieve all running EC2 instances
+      amazon.aws.ec2_instance_info:
+        region: "{{ region }}"
+      register: ec2_info
+      environment:
+        AWS_SHARED_CREDENTIALS_FILE: /home/autouser/.aws/credentials
+        AWS_CONFIG_FILE: /home/autouser/.aws/config
+        AWS_DEFAULT_REGION: "{{ region }}"
+
+    - name: Terminate all running EC2 instances
+      amazon.aws.ec2_instance:
+        instance_ids: "{{ item.instance_id }}"
+        state: absent
+        region: "{{ region }}"
+      loop: "{{ ec2_info.instances }}"
+      when: item.state.name == 'running'
+      environment:
+        AWS_SHARED_CREDENTIALS_FILE: /home/autouser/.aws/credentials
+        AWS_CONFIG_FILE: /home/autouser/.aws/config
+        AWS_DEFAULT_REGION: "{{ region }}"
