@@ -1,0 +1,106 @@
+Install aws cli
+#rhel9 vm
+
+[root@master-pagolu-net ~]# curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100 65.1M  100 65.1M    0     0  17.8M      0  0:00:03  0:00:03 --:--:-- 17.8M
+[root@master-pagolu-net ~]# unzip awscliv2.zip
+Archive:  awscliv2.zip
+   creating: aws/
+   creating: aws/dist/
+  inflating: aws/README.md
+  inflating: aws/install
+
+<<< op ommited >>
+
+
+[root@master-pagolu-net ~]# aws --version
+
+aws-cli/2.25.11 Python/3.12.9 Linux/5.14.0-427.13.1.el9_4.x86_64 exe/x86_64.rhel.9
+
+## aws configure is user specific  ## install on root and autouser are not same
+it creates .aws in $HOME
+
+[autouser@master-pagolu-net ~]$ aws configure
+AWS Access Key ID [None]: AKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+AWS Secret Access Key [None]: 7K/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxb
+Default region name [None]: us-east-1
+Default output format [None]:
+[autouser@master-pagolu-net ~]$ aws s3 ls
+2025-02-05 21:12:03 remote-tfstate1
+[autouser@master-pagolu-net ~]$
+
+#autouser on rhel9 vm congigure to be NOPASSWD /etc/sudoers
+
+TASK [Create EC2 instances] **********************************************************************************************************************************************************************************
+An exception occurred during task execution. To see the full traceback, use -vvv. The error was: ansible_collections.amazon.aws.plugins.module_utils.ec2.AnsibleEC2Error: Failed to run instances: An error occurred (InvalidKeyPair.NotFound) when calling the RunInstances operation: The key pair 'anskey' does not exist
+# create key-pair from aws console/using task
+
+
+TASK [create ec2 instance] ***********************************************************************************************************************************************************************************
+fatal: [localhost]: FAILED! => {"changed": false, "msg": "Failed to import the required Python library (botocore and boto3) on master-pagolu-net's Python /usr/bin/python3. Please read the module documentation and install it in the appropriate location. If the required library is installed, but Ansible is using the wrong Python interpreter, please consult the documentation on ansible_python_interpreter"}
+
+#install using pip3
+[autouser@master-pagolu-net ~]$ pip3 list| grep boto
+boto3                1.37.28
+botocore             1.37.28
+[autouser@master-pagolu-net ~]$
+
+
+# ansible-galaxy collection install amazon.aws
+
+
+
+
+TASK [Create EC2 instances] **********************************************************************************************************************************************************************************
+An exception occurred during task execution. To see the full traceback, use -vvv. The error was: ansible_collections.amazon.aws.plugins.module_utils.ec2.AnsibleEC2Error: Failed to describe instances: Unable to locate credentials
+fatal: [localhost]: FAILED! => {"boto3_version": "1.37.28", "botocore_version": "1.37.28", "changed": false, "msg": "Failed to describe instances: Unable to locate credentials"}
+
+## define "environment" with aws creds for each task
+
+
+
+
+[autouser@master-pagolu-net ~]$ ansible-playbook -i inventory ec2create.yml
+[WARNING]: Collection amazon.aws does not support Ansible version 2.14.17
+
+PLAY [Create and terminate  EC2 instance sample] *************************************************************************************************************************************************************
+
+TASK [Check if pip is installed] *****************************************************************************************************************************************************************************
+changed: [localhost]
+
+TASK [Install pip if not found] ******************************************************************************************************************************************************************************
+skipping: [localhost]
+
+TASK [Check if boto3 is installed] ***************************************************************************************************************************************************************************
+changed: [localhost]
+
+TASK [Install boto3 if not found] ****************************************************************************************************************************************************************************
+skipping: [localhost]
+
+TASK [Check if botocore is installed] ************************************************************************************************************************************************************************
+changed: [localhost]
+
+TASK [Install botocore if not found] *************************************************************************************************************************************************************************
+skipping: [localhost]
+
+TASK [Create EC2 instances] **********************************************************************************************************************************************************************************
+changed: [localhost] => (item=mysql)
+changed: [localhost] => (item=backend)
+changed: [localhost] => (item=frontend)
+
+TASK [Retrieve all running EC2 instances] ********************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [Terminate all running EC2 instances] *******************************************************************************************************************************************************************
+changed: [localhost] => (item={'architecture': 'x86_64', 'block_device_mappings': [{'device_name': '/dev/xvda', 'ebs': {'attach_time': '2025-04-07T10:45:25+00:00', 'delete_on_termination': True, 'status': 'attached', 'volume_id': 'vol-03eda53d05ce66d51'}}], 'client_token': '20aabb86feff4121a88c5f9553c3500a', 'ebs_optimized': False, 'ena_support': True, 'hypervisor': 'xen', 'network_interfaces': [{'association': {'ip_owner_id': 'amazon', 'public_dns_name': 'ec2-54-237-242-216.compute-1.amazonaws.com', 'public_ip': '54.237.242.216'}, 'attachment': {'attach_time': '2025-04-07T10:45:24+00:00', 'attachment_id': 'eni-attach-0537a8d11aa42dbdb', 'delete_on_termination': True, 'device_index': 0, 'status': 'attached', 'network_card_index': 0}, 'description': '', 'groups': [{'group_id': 'sg-01e0018ee20bb43b3', 'group_name': 'default'}], 'ipv6_addresses': [], 'mac_address': '0e:4d:c4:3b:5b:53', 'network_interface_id': 'eni-0cef67425823b6a56', 'owner_id': '692859939600', 'private_dns_name': 'ip-172-31-39-244.ec2.internal', 'private_ip_address': '172.31.39.244', 'private_ip_addresses': [{'association': {'ip_owner_id': 'amazon', 'public_dns_name': 'ec2-54-237-242-216.compute-1.amazonaws.com', 'public_ip': '54.237.242.216'}, 'primary': True, 'private_dns_name': 'ip-172-31-39-244.ec2.internal', 'private_ip_address': '172.31.39.244'}], 'source_dest_check': True, 'status': 'in-use', 'subnet_id': 'subnet-0f9ebbe7f7c087637', 'vpc_id': 'vpc-05bb745b69b8f5b69', 'interface_type': 'interface', 'operator': {'managed': False}}], 'root_device_name': '/dev/xvda', 'root_device_type': 'ebs', 'security_groups': [{'group_id': 'sg-01e0018ee20bb43b3', 'group_name': 'default'}], 'source_dest_check': True, 'tags': {'Name': 'backend'}, 'virtualization_type': 'hvm', 'cpu_options': {'core_count': 1, 'threads_per_core': 1}, 'capacity_reservation_specification': {'capacity_reservation_preference': 'open'}, 'hibernation_options': {'configured': False}, 'metadata_options': {'state': 'applied', 'http_tokens': 'required', 'http_put_response_hop_limit': 2, 'http_endpoint': 'enabled', 'http_protocol_ipv6': 'disabled', 'instance_metadata_tags': 'disabled'}, 'enclave_options': {'enabled': False}, 'boot_mode': 'uefi-preferred', 'platform_details': 'Linux/UNIX', 'usage_operation': 'RunInstances', 'usage_operation_update_time': '2025-04-07T10:45:24+00:00', 'private_dns_name_options': {'hostname_type': 'ip-name', 'enable_resource_name_dns_a_record': False, 'enable_resource_name_dns_aaaa_record': False}, 'maintenance_options': {'auto_recovery': 'default'}, 'current_instance_boot_mode': 'legacy-bios', 'network_performance_options': {'bandwidth_weighting': 'default'}, 'operator': {'managed': False}, 'instance_id': 'i-05a11e400c4cd5b95', 'image_id': 'ami-00a929b66ed6e0de6', 'state': {'code': 16, 'name': 'running'}, 'private_dns_name': 'ip-172-31-39-244.ec2.internal', 'public_dns_name': 'ec2-54-237-242-216.compute-1.amazonaws.com', 'state_transition_reason': '', 'key_name': 'anskey1', 'ami_launch_index': 0, 'product_codes': [], 'instance_type': 't2.micro', 'launch_time': '2025-04-07T10:45:24+00:00', 'placement': {'group_name': '', 'tenancy': 'default', 'availability_zone': 'us-east-1a'}, 'monitoring': {'state': 'disabled'}, 'subnet_id': 'subnet-0f9ebbe7f7c087637', 'vpc_id': 'vpc-05bb745b69b8f5b69', 'private_ip_address': '172.31.39.244', 'public_ip_address': '54.237.242.216'})
+changed: [localhost] => (item={'architecture': 'x86_64', 'block_device_mappings': [{'device_name': '/dev/xvda', 'ebs': {'attach_time': '2025-04-07T10:45:16+00:00', 'delete_on_termination': True, 'status': 'attached', 'volume_id': 'vol-03e0338da687e852f'}}], 'client_token': '69f0ec00b7064f5d8f26c5938ecc9e74', 'ebs_optimized': False, 'ena_support': True, 'hypervisor': 'xen', 'network_interfaces': [{'association': {'ip_owner_id': 'amazon', 'public_dns_name': 'ec2-13-216-251-232.compute-1.amazonaws.com', 'public_ip': '13.216.251.232'}, 'attachment': {'attach_time': '2025-04-07T10:45:16+00:00', 'attachment_id': 'eni-attach-096514d4e10fca6bf', 'delete_on_termination': True, 'device_index': 0, 'status': 'attached', 'network_card_index': 0}, 'description': '', 'groups': [{'group_id': 'sg-01e0018ee20bb43b3', 'group_name': 'default'}], 'ipv6_addresses': [], 'mac_address': '0e:33:66:3f:02:0f', 'network_interface_id': 'eni-006268a422079bad4', 'owner_id': '692859939600', 'private_dns_name': 'ip-172-31-34-233.ec2.internal', 'private_ip_address': '172.31.34.233', 'private_ip_addresses': [{'association': {'ip_owner_id': 'amazon', 'public_dns_name': 'ec2-13-216-251-232.compute-1.amazonaws.com', 'public_ip': '13.216.251.232'}, 'primary': True, 'private_dns_name': 'ip-172-31-34-233.ec2.internal', 'private_ip_address': '172.31.34.233'}], 'source_dest_check': True, 'status': 'in-use', 'subnet_id': 'subnet-0f9ebbe7f7c087637', 'vpc_id': 'vpc-05bb745b69b8f5b69', 'interface_type': 'interface', 'operator': {'managed': False}}], 'root_device_name': '/dev/xvda', 'root_device_type': 'ebs', 'security_groups': [{'group_id': 'sg-01e0018ee20bb43b3', 'group_name': 'default'}], 'source_dest_check': True, 'tags': {'Name': 'mysql'}, 'virtualization_type': 'hvm', 'cpu_options': {'core_count': 1, 'threads_per_core': 1}, 'capacity_reservation_specification': {'capacity_reservation_preference': 'open'}, 'hibernation_options': {'configured': False}, 'metadata_options': {'state': 'applied', 'http_tokens': 'required', 'http_put_response_hop_limit': 2, 'http_endpoint': 'enabled', 'http_protocol_ipv6': 'disabled', 'instance_metadata_tags': 'disabled'}, 'enclave_options': {'enabled': False}, 'boot_mode': 'uefi-preferred', 'platform_details': 'Linux/UNIX', 'usage_operation': 'RunInstances', 'usage_operation_update_time': '2025-04-07T10:45:16+00:00', 'private_dns_name_options': {'hostname_type': 'ip-name', 'enable_resource_name_dns_a_record': False, 'enable_resource_name_dns_aaaa_record': False}, 'maintenance_options': {'auto_recovery': 'default'}, 'current_instance_boot_mode': 'legacy-bios', 'network_performance_options': {'bandwidth_weighting': 'default'}, 'operator': {'managed': False}, 'instance_id': 'i-045602c11e8e737da', 'image_id': 'ami-00a929b66ed6e0de6', 'state': {'code': 16, 'name': 'running'}, 'private_dns_name': 'ip-172-31-34-233.ec2.internal', 'public_dns_name': 'ec2-13-216-251-232.compute-1.amazonaws.com', 'state_transition_reason': '', 'key_name': 'anskey1', 'ami_launch_index': 0, 'product_codes': [], 'instance_type': 't2.micro', 'launch_time': '2025-04-07T10:45:16+00:00', 'placement': {'group_name': '', 'tenancy': 'default', 'availability_zone': 'us-east-1a'}, 'monitoring': {'state': 'disabled'}, 'subnet_id': 'subnet-0f9ebbe7f7c087637', 'vpc_id': 'vpc-05bb745b69b8f5b69', 'private_ip_address': '172.31.34.233', 'public_ip_address': '13.216.251.232'})
+changed: [localhost] => (item={'architecture': 'x86_64', 'block_device_mappings': [{'device_name': '/dev/xvda', 'ebs': {'attach_time': '2025-04-07T10:45:35+00:00', 'delete_on_termination': True, 'status': 'attached', 'volume_id': 'vol-0dda54e0efb05e35c'}}], 'client_token': 'e1a6060b036e430bb05599d33959c6ba', 'ebs_optimized': False, 'ena_support': True, 'hypervisor': 'xen', 'network_interfaces': [{'association': {'ip_owner_id': 'amazon', 'public_dns_name': 'ec2-34-226-221-245.compute-1.amazonaws.com', 'public_ip': '34.226.221.245'}, 'attachment': {'attach_time': '2025-04-07T10:45:35+00:00', 'attachment_id': 'eni-attach-00a0506709bf5b07f', 'delete_on_termination': True, 'device_index': 0, 'status': 'attached', 'network_card_index': 0}, 'description': '', 'groups': [{'group_id': 'sg-01e0018ee20bb43b3', 'group_name': 'default'}], 'ipv6_addresses': [], 'mac_address': '0e:d0:58:c9:c2:1d', 'network_interface_id': 'eni-0dbf09ae5a3bf239f', 'owner_id': '692859939600', 'private_dns_name': 'ip-172-31-47-239.ec2.internal', 'private_ip_address': '172.31.47.239', 'private_ip_addresses': [{'association': {'ip_owner_id': 'amazon', 'public_dns_name': 'ec2-34-226-221-245.compute-1.amazonaws.com', 'public_ip': '34.226.221.245'}, 'primary': True, 'private_dns_name': 'ip-172-31-47-239.ec2.internal', 'private_ip_address': '172.31.47.239'}], 'source_dest_check': True, 'status': 'in-use', 'subnet_id': 'subnet-0f9ebbe7f7c087637', 'vpc_id': 'vpc-05bb745b69b8f5b69', 'interface_type': 'interface', 'operator': {'managed': False}}], 'root_device_name': '/dev/xvda', 'root_device_type': 'ebs', 'security_groups': [{'group_id': 'sg-01e0018ee20bb43b3', 'group_name': 'default'}], 'source_dest_check': True, 'tags': {'Name': 'frontend'}, 'virtualization_type': 'hvm', 'cpu_options': {'core_count': 1, 'threads_per_core': 1}, 'capacity_reservation_specification': {'capacity_reservation_preference': 'open'}, 'hibernation_options': {'configured': False}, 'metadata_options': {'state': 'applied', 'http_tokens': 'required', 'http_put_response_hop_limit': 2, 'http_endpoint': 'enabled', 'http_protocol_ipv6': 'disabled', 'instance_metadata_tags': 'disabled'}, 'enclave_options': {'enabled': False}, 'boot_mode': 'uefi-preferred', 'platform_details': 'Linux/UNIX', 'usage_operation': 'RunInstances', 'usage_operation_update_time': '2025-04-07T10:45:35+00:00', 'private_dns_name_options': {'hostname_type': 'ip-name', 'enable_resource_name_dns_a_record': False, 'enable_resource_name_dns_aaaa_record': False}, 'maintenance_options': {'auto_recovery': 'default'}, 'current_instance_boot_mode': 'legacy-bios', 'network_performance_options': {'bandwidth_weighting': 'default'}, 'operator': {'managed': False}, 'instance_id': 'i-04e29e86dd3eb2092', 'image_id': 'ami-00a929b66ed6e0de6', 'state': {'code': 16, 'name': 'running'}, 'private_dns_name': 'ip-172-31-47-239.ec2.internal', 'public_dns_name': 'ec2-34-226-221-245.compute-1.amazonaws.com', 'state_transition_reason': '', 'key_name': 'anskey1', 'ami_launch_index': 0, 'product_codes': [], 'instance_type': 't2.micro', 'launch_time': '2025-04-07T10:45:35+00:00', 'placement': {'group_name': '', 'tenancy': 'default', 'availability_zone': 'us-east-1a'}, 'monitoring': {'state': 'disabled'}, 'subnet_id': 'subnet-0f9ebbe7f7c087637', 'vpc_id': 'vpc-05bb745b69b8f5b69', 'private_ip_address': '172.31.47.239', 'public_ip_address': '34.226.221.245'})
+
+PLAY RECAP ***************************************************************************************************************************************************************************************************
+localhost                  : ok=6    changed=5    unreachable=0    failed=0    skipped=3    rescued=0    ignored=0
+
+[autouser@master-pagolu-net ~]$
+
+
